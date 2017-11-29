@@ -1,4 +1,5 @@
 import reactive_dates
+from rx import Observable, Observer
 
 
 def BudgetItem(name, amount, datep=None):
@@ -10,10 +11,11 @@ def BudgetItem(name, amount, datep=None):
 
 
 def amount_sum(budget):
-    result = 0
-    for budgetItem in budget:
-        result += budgetItem['amount']
-    return result
+    return Observable.from_(budget) \
+            .map(lambda b: b['amount']) \
+            .sum() \
+            .to_future() \
+            .result()
 
 
 def gen_budget(budget_items, from_to):
