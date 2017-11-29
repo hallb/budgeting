@@ -32,3 +32,19 @@ def bi_sum(bi1, bi2):
     result = dict(bi2)
     result['balance'] = bi1['balance'] + bi2['amount']
     return result
+
+
+def reduce_list(fn, a_list, start):
+    result = [start]
+    prev = start
+    for item in a_list:
+        prev = fn(prev, item)
+        result.append(prev)
+    return result
+
+
+def generate_budget(items, date_range):
+    gb = gen_budget(items, date_range)
+    sgb = sorted(gb, key=lambda b: b['date'])
+    reduced_list = reduce_list(bi_sum, sgb, {'balance': 0})
+    return reduced_list
