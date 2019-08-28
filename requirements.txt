@@ -1,4 +1,3 @@
 coverage
-rx
 git+https://github.com/hallb/reactive_dates
 

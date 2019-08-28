@@ -1,52 +1,48 @@
 import reactive_dates
-from rx import Observable, Observer
+from reactive_dates import DateRange
+from typing import NamedTuple, List
+from decimal import Decimal
+from datetime import date
+
+Money = Decimal  # TODO...really should be decimal
 
 
-def BudgetItem(name, amount, datep=None):
-    return {
-        'name': name,
-        'amount': amount,
-        'datep': datep
-    }
+class BudgetItem(NamedTuple):
+    name: str
+    amount: Money
+    date_predicate: reactive_dates.DatePredicate
 
 
-def amount_sum(budget):
-    return Observable.from_(budget) \
-            .map(lambda b: b['amount']) \
-            .sum() \
-            .to_future() \
-            .result()
+class Transaction(NamedTuple):
+    name: str
+    amount: Money
+    date: date
 
 
-def gen_budget(budget_items, from_to):
-    result = []
+class SummaryTransaction(NamedTuple):
+    transaction: Transaction
+    balance: Money
+
+
+def gen_budget(budget_items: List[BudgetItem], from_to: DateRange) -> List[Transaction]:
+    result: List[Transaction] = []
     for bi in budget_items:
-        event_dates = filter(bi['datep'], reactive_dates.daily(from_to))
-        result.extend([{
-            'name': bi['name'],
-            'amount': bi['amount'],
-            'date': ed
-        } for ed in event_dates])
+        event_dates = filter(bi.date_predicate, reactive_dates.daily(from_to))
+        result.extend([Transaction(bi.name, bi.amount, ed) for ed in event_dates])
     return result
 
 
-def bi_sum(bi1, bi2):
-    result = dict(bi2)
-    result['balance'] = bi1['balance'] + bi2['amount']
+def summarize_transactions(transactions: List[Transaction]) -> List[SummaryTransaction]:
+    result: List[SummaryTransaction] = []
+    running_total = Money('0.00')
+    for transaction in transactions:
+        running_total = running_total + transaction.amount
+        summary_transaction = SummaryTransaction(transaction, running_total)
+        result.append(summary_transaction)
     return result
 
 
-def reduce_list(fn, a_list, start):
-    result = [start]
-    prev = start
-    for item in a_list:
-        prev = fn(prev, item)
-        result.append(prev)
-    return result
-
-
-def generate_budget(items, date_range):
-    gb = gen_budget(items, date_range)
-    sgb = sorted(gb, key=lambda b: b['date'])
-    reduced_list = reduce_list(bi_sum, sgb, {'balance': 0})
-    return reduced_list
+def generate_budget(items: List[BudgetItem], date_range: DateRange) -> List[SummaryTransaction]:
+    transactions: List[Transaction] = gen_budget(items, date_range)
+    sorted_transactions: List[Transaction] = sorted(transactions, key=lambda b: b.date)
+    return summarize_transactions(sorted_transactions)
