@@ -7,7 +7,7 @@ from datetime import date
 Money = Decimal  # TODO...really should be decimal
 
 
-class BudgetItem(NamedTuple):
+class BudgetSpec(NamedTuple):
     name: str
     amount: Money
     date_predicate: reactive_dates.DatePredicate
@@ -24,11 +24,11 @@ class SummaryTransaction(NamedTuple):
     balance: Money
 
 
-def gen_budget(budget_items: List[BudgetItem], from_to: DateRange) -> List[Transaction]:
+def gen_budget(budget_specs: List[BudgetSpec], from_to: DateRange) -> List[Transaction]:
     result: List[Transaction] = []
-    for bi in budget_items:
-        event_dates = filter(bi.date_predicate, reactive_dates.daily(from_to))
-        result.extend([Transaction(bi.name, bi.amount, ed) for ed in event_dates])
+    for s in budget_specs:
+        event_dates = filter(s.date_predicate, reactive_dates.daily(from_to))
+        result.extend([Transaction(s.name, s.amount, ed) for ed in event_dates])
     return result
 
 
@@ -42,7 +42,7 @@ def summarize_transactions(transactions: List[Transaction]) -> List[SummaryTrans
     return result
 
 
-def generate_budget(items: List[BudgetItem], date_range: DateRange) -> List[SummaryTransaction]:
-    transactions: List[Transaction] = gen_budget(items, date_range)
-    sorted_transactions: List[Transaction] = sorted(transactions, key=lambda b: b.date)
+def generate_budget(budget_specs: List[BudgetSpec], date_range: DateRange) -> List[SummaryTransaction]:
+    transactions: List[Transaction] = gen_budget(budget_specs, date_range)
+    sorted_transactions: List[Transaction] = sorted(transactions, key=lambda tx: tx.date)
     return summarize_transactions(sorted_transactions)
